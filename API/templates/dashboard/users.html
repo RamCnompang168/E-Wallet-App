@@ -1,0 +1,113 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Users Management{% endblock %}
+{% block page_title %}User Accounts Directory{% endblock %}
+
+{% block content %}
+<div class="table-container">
+  <div class="table-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span class="table-title">Registered Accounts ({{ total_count }})</span>
+      
+      <!-- Role filters -->
+      <div style="display: flex; gap: 6px;">
+        <a href="?role=" class="badge-pill {% if not selected_role %}btn-accent{% else %}btn-ghost{% endif %}" style="text-decoration: none; padding: 4px 10px;">All Roles</a>
+        <a href="?role=CUSTOMER" class="badge-pill {% if selected_role == 'CUSTOMER' %}btn-accent{% else %}btn-ghost{% endif %}" style="text-decoration: none; padding: 4px 10px;">Customers</a>
+        <a href="?role=STAFF" class="badge-pill {% if selected_role == 'STAFF' %}btn-accent{% else %}btn-ghost{% endif %}" style="text-decoration: none; padding: 4px 10px;">Staff</a>
+        <a href="?role=ADMIN" class="badge-pill {% if selected_role == 'ADMIN' %}btn-accent{% else %}btn-ghost{% endif %}" style="text-decoration: none; padding: 4px 10px;">Admins</a>
+      </div>
+    </div>
+
+    <form method="GET" class="search-wrapper">
+      <input type="hidden" name="role" value="{{ selected_role }}">
+      <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" name="q" value="{{ query }}" placeholder="Search by name, email, phone..." class="input-search">
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>User Details</th>
+        <th>Role</th>
+        <th>KYC Tier</th>
+        <th>Document Verified</th>
+        <th>Wallets</th>
+        <th>Status</th>
+        <th>Joined</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              {% if u.profile_photo %}
+                <img src="{{ u.profile_photo.url }}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+              {% else %}
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-surface-elevated); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: var(--accent-green);">
+                  {{ u.full_name|slice:":2"|upper }}
+                </div>
+              {% endif %}
+              <div>
+                <div style="font-weight: 800; font-size: 14px;">{{ u.full_name }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">{{ u.phone_number }} • {{ u.email }}</div>
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <span class="badge-pill {% if u.role == 'ADMIN' %}badge-rejected{% elif u.role == 'STAFF' %}badge-pending{% else %}badge-active{% endif %}">
+              {{ u.role }}
+            </span>
+          </td>
+
+          <td>
+            <span style="font-weight: 700; font-size: 13px;">Tier {{ u.kyc_tier }}</span>
+          </td>
+
+          <td>
+            {% if u.id_document_number %}
+              <div style="font-size: 12px; font-weight: 600;">{{ u.get_id_document_type_display|default:u.id_document_type }}</div>
+              <div style="font-family: monospace; font-size: 11px; color: var(--text-muted);">{{ u.id_document_number }}</div>
+            {% else %}
+              <span style="font-size: 12px; color: var(--text-muted);">No document</span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% for w in u.wallets.all %}
+              <div style="font-size: 12px; font-family: monospace; font-weight: 600;">{{ w.wallet_number }}</div>
+              <div style="font-size: 12px; color: var(--accent-green); font-weight: 800;">${{ w.available_balance|floatformat:2 }} {{ w.currency }}</div>
+            {% empty %}
+              <span style="font-size: 12px; color: var(--text-muted);">None</span>
+            {% endfor %}
+          </td>
+
+          <td>
+            {% if u.status == 'ACTIVE' %}
+              <span class="badge-pill badge-active">Active</span>
+            {% elif u.status == 'PENDING_APPROVAL' %}
+              <span class="badge-pill badge-pending">Pending Approval</span>
+            {% elif u.status == 'REJECTED' %}
+              <span class="badge-pill badge-rejected">Rejected</span>
+            {% else %}
+              <span class="badge-pill">{{ u.status }}</span>
+            {% endif %}
+          </td>
+
+          <td style="font-size: 12px; color: var(--text-muted);">
+            {{ u.created_at|date:"M d, Y" }}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px 16px;">
+            No users found matching query.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
